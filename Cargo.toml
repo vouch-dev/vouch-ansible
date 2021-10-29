@@ -1,0 +1,36 @@
+[package]
+name = "vouch-ansible"
+version = "0.0.1"
+authors = ["rndhouse <rndhouse@protonmail.com>"]
+edition = "2018"
+repository = "https://github.com/vouch-dev/vouch-ansible"
+license = "MIT"
+description = "Ansible Galaxy ecosystem extension for the Vouch package review system."
+
+[lib]
+name = "vouch_ansible_lib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "vouch-ansible"
+path = "src/bin.rs"
+
+[dependencies]
+vouch-lib = { path = "../vouch/vouch-lib", version = "0.2.4" }
+
+anyhow = "1.0.31"
+structopt = "0.3.14"
+strum = "0.20.0"
+strum_macros = "0.20.1"
+maplit = "1.0.2"
+
+url = "2.1.1"
+reqwest = { version = "0.10.6", features = ["blocking"] }
+
+glob = "0.3.0"
+regex = "1.5.4"
+handlebars = "3.1.0"
+serde = { version = "1.0.104", features = ["derive"] }
+serde_json = "1.0.48"
+serde_yaml = "0.8.21"
+semver = "1.0.4"
