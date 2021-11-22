@@ -69,8 +69,14 @@ impl vouch_lib::extension::Extension for AnsibleExtension {
     fn registries_package_metadata(
         &self,
         package_name: &str,
-        package_version: &str,
+        package_version: &Option<&str>,
     ) -> Result<Vec<vouch_lib::extension::RegistryPackageMetadata>> {
+        let package_version = match package_version {
+            Some(v) => Some(v.to_string()),
+            None => get_latest_version(&package_name)?,
+        }
+        .ok_or(format_err!("Failed to find package version."))?;
+
         // Query remote package registry for given package.
         let human_url = get_registry_human_url(&self, &package_name)?;
 
@@ -91,8 +97,38 @@ impl vouch_lib::extension::Extension for AnsibleExtension {
             human_url: human_url.to_string(),
             artifact_url: artifact_url.to_string(),
             is_primary: true,
+            package_version: package_version.to_string(),
         }])
     }
+}
+
+/// Given package name, return latest version.
+fn get_latest_version(package_name: &str) -> Result<Option<String>> {
+    let json = get_registry_versions_json(&package_name)?;
+    let version_entries = json["results"]
+        .as_array()
+        .ok_or(format_err!("Failed to find results JSON section."))?;
+
+    let mut versions = Vec::<semver::Version>::new();
+    for version_entry in version_entries {
+        let version_entry = version_entry
+            .as_object()
+            .ok_or(format_err!("Failed to parse version entry as JSON object."))?;
+        let version = version_entry["version"]
+            .as_str()
+            .ok_or(format_err!("Failed to parse version as str."))?;
+        let version = match semver::Version::parse(version) {
+            Ok(v) => v,
+            Err(_) => continue,
+        };
+        versions.push(version);
+    }
+    versions.sort();
+
+    let latest_version = versions
+        .last()
+        .ok_or(format_err!("Failed to find latest version."))?;
+    Ok(Some(latest_version.to_string()))
 }
 
 fn get_registry_human_url(extension: &AnsibleExtension, package_name: &str) -> Result<url::Url> {
@@ -106,6 +142,21 @@ fn get_registry_human_url(extension: &AnsibleExtension, package_name: &str) -> R
         },
     )?;
     Ok(url::Url::parse(url.as_str())?)
+}
+
+fn get_registry_versions_json(package_name: &str) -> Result<serde_json::Value> {
+    let package_name = package_name.replace(".", "/");
+    let handlebars_registry = handlebars::Handlebars::new();
+    let json_url = handlebars_registry.render_template(
+        "https://galaxy.ansible.com/api/v2/collections/{{package_name}}/versions/",
+        &maplit::btreemap! {"package_name" => package_name},
+    )?;
+
+    let mut result = reqwest::blocking::get(&json_url.to_string())?;
+    let mut body = String::new();
+    result.read_to_string(&mut body)?;
+
+    Ok(serde_json::from_str(&body).context(format!("JSON was not well-formatted:\n{}", body))?)
 }
 
 fn get_registry_entry_json(package_name: &str, package_version: &str) -> Result<serde_json::Value> {
