@@ -32,10 +32,11 @@ impl vouch_lib::extension::Extension for AnsibleExtension {
         self.registry_host_names_.clone()
     }
 
-    fn identify_local_dependencies(
+    fn identify_file_defined_dependencies(
         &self,
         working_directory: &std::path::PathBuf,
-    ) -> Result<Vec<vouch_lib::extension::DependenciesSpec>> {
+        _extension_args: &Vec<String>,
+    ) -> Result<Vec<vouch_lib::extension::FileDefinedDependencies>> {
         // Identify dependency definition file.
         let dependency_files = identify_dependency_files(&working_directory);
         let dependency_file = match select_preferred_dependency_file(&dependency_files) {
@@ -57,7 +58,7 @@ impl vouch_lib::extension::Extension for AnsibleExtension {
                 galaxy::get_registry_host_name(),
             ),
         };
-        dependency_specs.push(vouch_lib::extension::DependenciesSpec {
+        dependency_specs.push(vouch_lib::extension::FileDefinedDependencies {
             path: dependency_file.path.clone(),
             registry_host_name: registry_host_name,
             dependencies: dependencies.into_iter().collect(),
