@@ -32,6 +32,18 @@ impl vouch_lib::extension::Extension for AnsibleExtension {
         self.registry_host_names_.clone()
     }
 
+    /// Returns a list of dependencies for the given package.
+    ///
+    /// Returns one package dependencies structure per registry.
+    fn identify_package_dependencies(
+        &self,
+        _package_name: &str,
+        _package_version: &Option<&str>,
+        _extension_args: &Vec<String>,
+    ) -> Result<Vec<vouch_lib::extension::PackageDependencies>> {
+        Err(format_err!("Function unimplemented."))
+    }
+
     fn identify_file_defined_dependencies(
         &self,
         working_directory: &std::path::PathBuf,

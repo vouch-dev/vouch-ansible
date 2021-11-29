@@ -234,8 +234,6 @@ pub fn get_galaxy_yml_dependencies(
             "Failed to parse version requirement as string."
         ))?;
 
-        println!("version_requirement: {:?}", version_requirement);
-
         let version_requirement = semver::VersionReq::parse(version_requirement)?;
         let global_version = global_dependencies
             .get(package_name.as_str())
