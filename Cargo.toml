@@ -16,7 +16,7 @@ name = "vouch-ansible"
 path = "src/bin.rs"
 
 [dependencies]
-vouch-lib = { path = "../vouch/vouch-lib", version = "0.3.1" }
+vouch-lib = { path = "../../vouch/vouch-lib", version = "0.3.1" }
 
 anyhow = "1.0.31"
 structopt = "0.3.14"
