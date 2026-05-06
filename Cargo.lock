@@ -1284,6 +1284,42 @@ dependencies = [
 ]
 
 [[package]]
+name = "thirdpass-ansible"
+version = "1.1.1"
+dependencies = [
+ "anyhow",
+ "glob",
+ "handlebars",
+ "maplit",
+ "regex",
+ "reqwest 0.10.10",
+ "semver",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "structopt",
+ "strum",
+ "strum_macros",
+ "thirdpass-lib",
+ "url",
+]
+
+[[package]]
+name = "thirdpass-lib"
+version = "0.3.1"
+dependencies = [
+ "anyhow",
+ "env_logger",
+ "log",
+ "reqwest 0.11.9",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "structopt",
+ "url",
+]
+
+[[package]]
 name = "tinyvec"
 version = "1.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1516,42 +1552,6 @@ name = "version_check"
 version = "0.9.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5fecdca9a5291cc2b8dcf7dc02453fee791a280f3743cb0905f8822ae463b3fe"
-
-[[package]]
-name = "vouch-ansible"
-version = "1.1.1"
-dependencies = [
- "anyhow",
- "glob",
- "handlebars",
- "maplit",
- "regex",
- "reqwest 0.10.10",
- "semver",
- "serde",
- "serde_json",
- "serde_yaml",
- "structopt",
- "strum",
- "strum_macros",
- "url",
- "vouch-lib",
-]
-
-[[package]]
-name = "vouch-lib"
-version = "0.3.1"
-dependencies = [
- "anyhow",
- "env_logger",
- "log",
- "reqwest 0.11.9",
- "serde",
- "serde_json",
- "serde_yaml",
- "structopt",
- "url",
-]
 
 [[package]]
 name = "want"

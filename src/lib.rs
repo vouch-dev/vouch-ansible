@@ -12,7 +12,7 @@ pub struct AnsibleExtension {
     registry_human_url_template_: String,
 }
 
-impl vouch_lib::extension::FromLib for AnsibleExtension {
+impl thirdpass_lib::extension::FromLib for AnsibleExtension {
     fn new() -> Self {
         Self {
             name_: "ansible".to_string(),
@@ -23,7 +23,7 @@ impl vouch_lib::extension::FromLib for AnsibleExtension {
     }
 }
 
-impl vouch_lib::extension::Extension for AnsibleExtension {
+impl thirdpass_lib::extension::Extension for AnsibleExtension {
     fn name(&self) -> String {
         self.name_.clone()
     }
@@ -40,7 +40,7 @@ impl vouch_lib::extension::Extension for AnsibleExtension {
         _package_name: &str,
         _package_version: &Option<&str>,
         _extension_args: &Vec<String>,
-    ) -> Result<Vec<vouch_lib::extension::PackageDependencies>> {
+    ) -> Result<Vec<thirdpass_lib::extension::PackageDependencies>> {
         Err(format_err!("Function unimplemented."))
     }
 
@@ -48,7 +48,7 @@ impl vouch_lib::extension::Extension for AnsibleExtension {
         &self,
         working_directory: &std::path::PathBuf,
         _extension_args: &Vec<String>,
-    ) -> Result<Vec<vouch_lib::extension::FileDefinedDependencies>> {
+    ) -> Result<Vec<thirdpass_lib::extension::FileDefinedDependencies>> {
         // Identify dependency definition file.
         let dependency_files = identify_dependency_files(&working_directory);
         let dependency_file = match select_preferred_dependency_file(&dependency_files) {
@@ -70,7 +70,7 @@ impl vouch_lib::extension::Extension for AnsibleExtension {
                 galaxy::get_registry_host_name(),
             ),
         };
-        dependency_specs.push(vouch_lib::extension::FileDefinedDependencies {
+        dependency_specs.push(thirdpass_lib::extension::FileDefinedDependencies {
             path: dependency_file.path.clone(),
             registry_host_name: registry_host_name,
             dependencies: dependencies.into_iter().collect(),
@@ -83,7 +83,7 @@ impl vouch_lib::extension::Extension for AnsibleExtension {
         &self,
         package_name: &str,
         package_version: &Option<&str>,
-    ) -> Result<Vec<vouch_lib::extension::RegistryPackageMetadata>> {
+    ) -> Result<Vec<thirdpass_lib::extension::RegistryPackageMetadata>> {
         let package_version = match package_version {
             Some(v) => Some(v.to_string()),
             None => get_latest_version(&package_name)?,
@@ -105,7 +105,7 @@ impl vouch_lib::extension::Extension for AnsibleExtension {
         let entry_json = get_registry_entry_json(&package_name, &package_version)?;
         let artifact_url = get_archive_url(&entry_json)?;
 
-        Ok(vec![vouch_lib::extension::RegistryPackageMetadata {
+        Ok(vec![thirdpass_lib::extension::RegistryPackageMetadata {
             registry_host_name: registry_host_name,
             human_url: human_url.to_string(),
             artifact_url: artifact_url.to_string(),
