@@ -162,27 +162,27 @@ fn comparator_to_version(comparator: &semver::Comparator) -> Result<semver::Vers
 fn package_specific_version_from_requirement(
     version_requirement: &semver::VersionReq,
     global_version: Option<semver::Version>,
-) -> std::result::Result<semver::Version, thirdpass_lib::extension::common::VersionError> {
+) -> std::result::Result<semver::Version, thirdpass_core::extension::common::VersionError> {
     if let Some(global_version) = global_version {
         if version_requirement.matches(&global_version) {
             return Ok(global_version);
         }
     } else {
         let comparator = select_latest_equal_comparator(&version_requirement.comparators)
-            .ok_or(thirdpass_lib::extension::common::VersionError::from_missing_version())?;
+            .ok_or(thirdpass_core::extension::common::VersionError::from_missing_version())?;
         let version = comparator_to_version(&comparator).or(Err(
-            thirdpass_lib::extension::common::VersionError::from_missing_version(),
+            thirdpass_core::extension::common::VersionError::from_missing_version(),
         ))?;
         return Ok(version);
     }
-    Err(thirdpass_lib::extension::common::VersionError::from_missing_version())
+    Err(thirdpass_core::extension::common::VersionError::from_missing_version())
 }
 
 /// Parse dependencies from project MANIFEST.json file.
 pub fn get_manifest_dependencies(
     file_path: &std::path::PathBuf,
     global_dependencies: &std::collections::HashMap<String, String>,
-) -> Result<std::collections::HashSet<thirdpass_lib::extension::Dependency>> {
+) -> Result<std::collections::HashSet<thirdpass_core::extension::Dependency>> {
     let file = std::fs::File::open(file_path)?;
     let reader = std::io::BufReader::new(file);
     let package_meta: serde_json::Value = serde_json::from_reader(reader)
@@ -193,7 +193,8 @@ pub fn get_manifest_dependencies(
             "Failed to parse dependencies section as object."
         ))?;
 
-    let mut dependencies = std::collections::HashSet::<thirdpass_lib::extension::Dependency>::new();
+    let mut dependencies =
+        std::collections::HashSet::<thirdpass_core::extension::Dependency>::new();
     for (package_name, version_requirement) in raw_dependencies.iter() {
         let version_requirement = version_requirement.as_str().ok_or(format_err!(
             "Failed to parse version requirement as string."
@@ -206,7 +207,7 @@ pub fn get_manifest_dependencies(
         let version =
             package_specific_version_from_requirement(&version_requirement, global_version);
 
-        dependencies.insert(thirdpass_lib::extension::Dependency {
+        dependencies.insert(thirdpass_core::extension::Dependency {
             name: package_name.clone(),
             version: version.map(|v| v.to_string()),
         });
@@ -219,7 +220,7 @@ pub fn get_manifest_dependencies(
 pub fn get_galaxy_yml_dependencies(
     file_path: &std::path::PathBuf,
     global_dependencies: &std::collections::HashMap<String, String>,
-) -> Result<std::collections::HashSet<thirdpass_lib::extension::Dependency>> {
+) -> Result<std::collections::HashSet<thirdpass_core::extension::Dependency>> {
     let file = std::fs::File::open(file_path)?;
     let reader = std::io::BufReader::new(file);
     let package_meta: serde_json::Value = serde_yaml::from_reader(reader)
@@ -228,7 +229,8 @@ pub fn get_galaxy_yml_dependencies(
         "Failed to parse dependencies section as object."
     ))?;
 
-    let mut dependencies = std::collections::HashSet::<thirdpass_lib::extension::Dependency>::new();
+    let mut dependencies =
+        std::collections::HashSet::<thirdpass_core::extension::Dependency>::new();
     for (package_name, version_requirement) in raw_dependencies.iter() {
         let version_requirement = version_requirement.as_str().ok_or(format_err!(
             "Failed to parse version requirement as string."
@@ -241,7 +243,7 @@ pub fn get_galaxy_yml_dependencies(
         let version =
             package_specific_version_from_requirement(&version_requirement, global_version);
 
-        dependencies.insert(thirdpass_lib::extension::Dependency {
+        dependencies.insert(thirdpass_core::extension::Dependency {
             name: package_name.clone(),
             version: version.map(|v| v.to_string()),
         });
