@@ -8,7 +8,6 @@ mod galaxy;
 pub struct AnsibleExtension {
     name_: String,
     registry_host_names_: Vec<String>,
-    root_url_: url::Url,
     registry_human_url_template_: String,
 }
 
@@ -17,8 +16,8 @@ impl thirdpass_core::extension::FromLib for AnsibleExtension {
         Self {
             name_: "ansible".to_string(),
             registry_host_names_: vec!["galaxy.ansible.com".to_owned()],
-            root_url_: url::Url::parse("https://galaxy.ansible.com").unwrap(),
-            registry_human_url_template_: "https://galaxy.ansible.com/{{package_name}}".to_string(),
+            registry_human_url_template_:
+                "https://galaxy.ansible.com/ui/repo/published/{{package_name}}/".to_string(),
         }
     }
 }
@@ -118,9 +117,13 @@ impl thirdpass_core::extension::Extension for AnsibleExtension {
 /// Given package name, return latest version.
 fn get_latest_version(package_name: &str) -> Result<Option<String>> {
     let json = get_registry_versions_json(&package_name)?;
-    let version_entries = json["results"]
+    latest_version_from_versions_json(&json).map(Some)
+}
+
+fn latest_version_from_versions_json(json: &serde_json::Value) -> Result<String> {
+    let version_entries = json["data"]
         .as_array()
-        .ok_or(format_err!("Failed to find results JSON section."))?;
+        .ok_or(format_err!("Failed to find data JSON section."))?;
 
     let mut versions = Vec::<semver::Version>::new();
     for version_entry in version_entries {
@@ -141,7 +144,7 @@ fn get_latest_version(package_name: &str) -> Result<Option<String>> {
     let latest_version = versions
         .last()
         .ok_or(format_err!("Failed to find latest version."))?;
-    Ok(Some(latest_version.to_string()))
+    Ok(latest_version.to_string())
 }
 
 fn get_registry_human_url(extension: &AnsibleExtension, package_name: &str) -> Result<url::Url> {
@@ -161,28 +164,36 @@ fn get_registry_versions_json(package_name: &str) -> Result<serde_json::Value> {
     let package_name = package_name.replace(".", "/");
     let handlebars_registry = handlebars::Handlebars::new();
     let json_url = handlebars_registry.render_template(
-        "https://galaxy.ansible.com/api/v2/collections/{{package_name}}/versions/",
+        "https://galaxy.ansible.com/api/v3/plugin/ansible/content/published/collections/index/{{package_name}}/versions/",
         &maplit::btreemap! {"package_name" => package_name},
     )?;
 
-    let mut result = reqwest::blocking::get(&json_url.to_string())?;
-    let mut body = String::new();
-    result.read_to_string(&mut body)?;
-
-    Ok(serde_json::from_str(&body).context(format!("JSON was not well-formatted:\n{}", body))?)
+    get_registry_json(&json_url)
 }
 
 fn get_registry_entry_json(package_name: &str, package_version: &str) -> Result<serde_json::Value> {
     let package_name = package_name.replace(".", "/");
     let handlebars_registry = handlebars::Handlebars::new();
     let json_url = handlebars_registry.render_template(
-        "https://galaxy.ansible.com/api/v2/collections/{{package_name}}/versions/{{package_version}}/",
+        "https://galaxy.ansible.com/api/v3/plugin/ansible/content/published/collections/index/{{package_name}}/versions/{{package_version}}/",
         &maplit::btreemap! {"package_name" => package_name, "package_version" => package_version.to_string()},
     )?;
 
-    let mut result = reqwest::blocking::get(&json_url.to_string())?;
+    get_registry_json(&json_url)
+}
+
+fn get_registry_json(json_url: &str) -> Result<serde_json::Value> {
+    let mut result = reqwest::blocking::get(json_url)?;
+    let status = result.status();
     let mut body = String::new();
     result.read_to_string(&mut body)?;
+    if !status.is_success() {
+        return Err(format_err!(
+            "Galaxy registry request failed ({}): {}",
+            status,
+            body
+        ));
+    }
 
     Ok(serde_json::from_str(&body).context(format!("JSON was not well-formatted:\n{}", body))?)
 }
@@ -274,4 +285,48 @@ fn identify_dependency_files(working_directory: &std::path::PathBuf) -> Vec<Depe
         working_directory.pop();
     }
     Vec::new()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use thirdpass_core::extension::FromLib;
+
+    #[test]
+    fn latest_version_reads_galaxy_v3_data_entries() -> Result<()> {
+        let json = serde_json::json!({
+            "meta": { "count": 2 },
+            "data": [
+                { "version": "1.0.0" },
+                { "version": "1.2.0" }
+            ]
+        });
+
+        assert_eq!(latest_version_from_versions_json(&json)?, "1.2.0");
+        Ok(())
+    }
+
+    #[test]
+    fn archive_url_reads_galaxy_v3_download_url() -> Result<()> {
+        let json = serde_json::json!({
+            "download_url": "https://galaxy.ansible.com/api/v3/plugin/ansible/content/published/collections/artifacts/c01110011-protonpass-1.0.0.tar.gz"
+        });
+
+        assert_eq!(
+            get_archive_url(&json)?.as_str(),
+            "https://galaxy.ansible.com/api/v3/plugin/ansible/content/published/collections/artifacts/c01110011-protonpass-1.0.0.tar.gz"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn human_url_uses_published_collection_route() -> Result<()> {
+        let extension = AnsibleExtension::new();
+
+        assert_eq!(
+            get_registry_human_url(&extension, "c01110011.protonpass")?.as_str(),
+            "https://galaxy.ansible.com/ui/repo/published/c01110011/protonpass/"
+        );
+        Ok(())
+    }
 }
