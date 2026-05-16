@@ -162,20 +162,20 @@ fn comparator_to_version(comparator: &semver::Comparator) -> Result<semver::Vers
 fn package_specific_version_from_requirement(
     version_requirement: &semver::VersionReq,
     global_version: Option<semver::Version>,
-) -> std::result::Result<semver::Version, thirdpass_core::extension::common::VersionError> {
+) -> std::result::Result<semver::Version, thirdpass_core::extension::VersionError> {
     if let Some(global_version) = global_version {
         if version_requirement.matches(&global_version) {
             return Ok(global_version);
         }
     } else {
         let comparator = select_latest_equal_comparator(&version_requirement.comparators)
-            .ok_or(thirdpass_core::extension::common::VersionError::from_missing_version())?;
+            .ok_or(thirdpass_core::extension::VersionError::from_missing_version())?;
         let version = comparator_to_version(&comparator).or(Err(
-            thirdpass_core::extension::common::VersionError::from_missing_version(),
+            thirdpass_core::extension::VersionError::from_missing_version(),
         ))?;
         return Ok(version);
     }
-    Err(thirdpass_core::extension::common::VersionError::from_missing_version())
+    Err(thirdpass_core::extension::VersionError::from_missing_version())
 }
 
 /// Parse dependencies from project MANIFEST.json file.
