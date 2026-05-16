@@ -180,7 +180,7 @@ fn package_specific_version_from_requirement(
 
 /// Parse dependencies from project MANIFEST.json file.
 pub fn get_manifest_dependencies(
-    file_path: &std::path::PathBuf,
+    file_path: &std::path::Path,
     global_dependencies: &std::collections::HashMap<String, String>,
 ) -> Result<std::collections::HashSet<thirdpass_core::extension::Dependency>> {
     let file = std::fs::File::open(file_path)?;
@@ -218,7 +218,7 @@ pub fn get_manifest_dependencies(
 
 /// Parse dependencies from project galaxy.yml file.
 pub fn get_galaxy_yml_dependencies(
-    file_path: &std::path::PathBuf,
+    file_path: &std::path::Path,
     global_dependencies: &std::collections::HashMap<String, String>,
 ) -> Result<std::collections::HashSet<thirdpass_core::extension::Dependency>> {
     let file = std::fs::File::open(file_path)?;
