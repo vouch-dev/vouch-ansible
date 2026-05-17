@@ -49,7 +49,7 @@ impl thirdpass_core::extension::Extension for AnsibleExtension {
         _extension_args: &[String],
     ) -> Result<Vec<thirdpass_core::extension::FileDefinedDependencies>> {
         // Identify dependency definition file.
-        let dependency_files = identify_dependency_files(&working_directory);
+        let dependency_files = identify_dependency_files(working_directory);
         let dependency_file = match select_preferred_dependency_file(&dependency_files) {
             Some(dependency_file) => dependency_file,
             None => return Ok(Vec::new()),
@@ -71,7 +71,7 @@ impl thirdpass_core::extension::Extension for AnsibleExtension {
         };
         dependency_specs.push(thirdpass_core::extension::FileDefinedDependencies {
             path: dependency_file.path.clone(),
-            registry_host_name: registry_host_name,
+            registry_host_name,
             dependencies: dependencies.into_iter().collect(),
         });
 
@@ -85,12 +85,12 @@ impl thirdpass_core::extension::Extension for AnsibleExtension {
     ) -> Result<Vec<thirdpass_core::extension::RegistryPackageMetadata>> {
         let package_version = match package_version {
             Some(v) => Some(v.to_string()),
-            None => get_latest_version(&package_name)?,
+            None => get_latest_version(package_name)?,
         }
         .ok_or(format_err!("Failed to find package version."))?;
 
         // Query remote package registry for given package.
-        let human_url = get_registry_human_url(&self, &package_name)?;
+        let human_url = get_registry_human_url(self, package_name)?;
 
         // Currently, only one registry is supported. Therefore simply extract.
         let registry_host_name = self
@@ -101,11 +101,11 @@ impl thirdpass_core::extension::Extension for AnsibleExtension {
             ))?
             .clone();
 
-        let entry_json = get_registry_entry_json(&package_name, &package_version)?;
+        let entry_json = get_registry_entry_json(package_name, &package_version)?;
         let artifact_url = get_archive_url(&entry_json)?;
 
         Ok(vec![thirdpass_core::extension::RegistryPackageMetadata {
-            registry_host_name: registry_host_name,
+            registry_host_name,
             human_url: human_url.to_string(),
             artifact_url: artifact_url.to_string(),
             is_primary: true,
@@ -116,7 +116,7 @@ impl thirdpass_core::extension::Extension for AnsibleExtension {
 
 /// Given package name, return latest version.
 fn get_latest_version(package_name: &str) -> Result<Option<String>> {
-    let json = get_registry_versions_json(&package_name)?;
+    let json = get_registry_versions_json(package_name)?;
     latest_version_from_versions_json(&json).map(Some)
 }
 
@@ -195,7 +195,7 @@ fn get_registry_json(json_url: &str) -> Result<serde_json::Value> {
         ));
     }
 
-    Ok(serde_json::from_str(&body).context(format!("JSON was not well-formatted:\n{}", body))?)
+    serde_json::from_str(&body).context(format!("JSON was not well-formatted:\n{}", body))
 }
 
 fn get_archive_url(registry_entry_json: &serde_json::Value) -> Result<url::Url> {
@@ -232,21 +232,17 @@ struct DependencyFile {
 
 /// Select preferred galaxy.yml dependency file type.
 fn select_preferred_dependency_file(
-    dependency_files: &Vec<DependencyFile>,
+    dependency_files: &[DependencyFile],
 ) -> Option<&DependencyFile> {
-    if dependency_files.iter().any(|file| match file.r#type {
-        DependencyFileType::GalaxyYml => true,
-        _ => false,
-    }) {
+    if dependency_files
+        .iter()
+        .any(|file| matches!(file.r#type, DependencyFileType::GalaxyYml))
+    {
         dependency_files
-            .into_iter()
-            .filter(|file| match file.r#type {
-                DependencyFileType::GalaxyYml => true,
-                _ => false,
-            })
-            .next()
+            .iter()
+            .find(|file| matches!(file.r#type, DependencyFileType::GalaxyYml))
     } else {
-        dependency_files.into_iter().next()
+        dependency_files.first()
     }
 }
 
@@ -277,7 +273,7 @@ fn identify_dependency_files(working_directory: &std::path::Path) -> Vec<Depende
         }
 
         // No need to move further up the directory tree after this loop.
-        if working_directory == std::path::PathBuf::from("/") {
+        if working_directory == std::path::Path::new("/") {
             break;
         }
 

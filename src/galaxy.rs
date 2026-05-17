@@ -69,10 +69,10 @@ fn order_version_requirement_comparators(
 }
 
 fn select_latest_equal_comparator(
-    comparators: &Vec<semver::Comparator>,
+    comparators: &[semver::Comparator],
 ) -> Option<semver::Comparator> {
-    let mut comparators = comparators.clone();
-    comparators.sort_by(|a, b| order_version_requirement_comparators(&a, &b));
+    let mut comparators = comparators.to_owned();
+    comparators.sort_by(order_version_requirement_comparators);
     let mut selected_comparator = None;
     for comparator in comparators {
         if comparator.op == semver::Op::Exact
@@ -113,7 +113,6 @@ fn normalize_version(version: &str) -> Result<String> {
         prefix += ".0.0";
     } else if count_periods == 1 {
         prefix += ".0";
-    } else {
     }
 
     for part in split {
@@ -151,7 +150,7 @@ fn comparator_to_version(comparator: &semver::Comparator) -> Result<semver::Vers
         _ => "",
     };
 
-    let version_str = comparator_str.trim_start_matches(&op_str);
+    let version_str = comparator_str.trim_start_matches(op_str);
     let version = normalize_version(version_str)?;
     let version = semver::Version::parse(&version);
     Ok(version?)
